@@ -15,8 +15,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "manga-reader",
-  description: "manga-reader",
+  title: "Manga Reader",
+  description: "Discover and explore amazing manga from MangaDex",
 };
 
 export default function RootLayout({
@@ -30,7 +30,7 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <Providers>
-          <div className="grid grid-rows-[auto_1fr] h-svh">
+          <div className="flex min-h-screen flex-col">
             <Header />
             {children}
           </div>
