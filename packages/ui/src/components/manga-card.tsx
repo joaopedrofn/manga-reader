@@ -1,5 +1,6 @@
 import * as React from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./card"
+import { Button } from "./button"
 
 interface MangaCardProps {
   manga: {
@@ -20,9 +21,10 @@ interface MangaCardProps {
       }>;
     };
   };
+  onClick?: () => void;
 }
 
-export function MangaCard({ manga }: MangaCardProps) {
+export function MangaCard({ manga, onClick }: MangaCardProps) {
   const title = manga.attributes.title.en || Object.values(manga.attributes.title)[0] || "Unknown Title";
   const description = manga.attributes.description?.en || Object.values(manga.attributes.description || {})[0] || "";
   
@@ -146,6 +148,14 @@ export function MangaCard({ manga }: MangaCardProps) {
                 +{(manga.attributes.tags?.length || 0) - 3} more
               </span>
             )}
+          </div>
+        )}
+        
+        {onClick && (
+          <div className="pt-4">
+            <Button onClick={onClick} className="w-full" variant="outline">
+              View Chapters
+            </Button>
           </div>
         )}
       </CardContent>

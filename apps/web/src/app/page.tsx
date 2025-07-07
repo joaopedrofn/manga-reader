@@ -3,7 +3,7 @@ import { MangaList } from "@/components/manga-list";
 
 export default function Home() {
   return (
-    <main className="flex-1 bg-gradient-to-br from-background to-muted/20">
+    <main className="flex-1 bg-gradient-to-br from-background to-muted pt-14 -mt-14">
       <div className="container mx-auto max-w-7xl px-4 py-8 md:py-12">
         {/* Hero Section */}
         <div className="text-center mb-12">

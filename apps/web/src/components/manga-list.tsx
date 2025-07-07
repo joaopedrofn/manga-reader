@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
 import { trpc } from "@/utils/trpc";
 import { MangaCard, Button, Input, Skeleton } from "@/ui";
 import { ChevronLeft, ChevronRight, Search, X } from "lucide-react";
@@ -9,6 +10,7 @@ import { ChevronLeft, ChevronRight, Search, X } from "lucide-react";
 const ITEMS_PER_PAGE = 12;
 
 export function MangaList() {
+  const router = useRouter();
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchInput, setSearchInput] = useState("");
@@ -174,7 +176,11 @@ export function MangaList() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {data?.mangas.map((manga) => (
-            <MangaCard key={manga.id} manga={manga} />
+            <MangaCard 
+              key={manga.id} 
+              manga={manga} 
+              onClick={() => router.push(`/manga/${manga.id}/chapters`)}
+            />
           ))}
         </div>
       )}
