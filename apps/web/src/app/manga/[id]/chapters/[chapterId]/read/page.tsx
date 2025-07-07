@@ -59,8 +59,8 @@ export default function ChapterReadPage() {
   useEffect(() => {
     if (chapterData && mangaData?.manga && progressLoaded) {
       const mangaTitle = mangaData.manga.attributes.title.en || Object.values(mangaData.manga.attributes.title)[0] || "Unknown Title";
-      const chapterNumber = chapterData.chapter.attributes.chapter;
-      const chapterTitle = chapterData.chapter.attributes.title;
+      const chapterNumber = chapterData.chapter.attributes.chapter || undefined;
+      const chapterTitle = chapterData.chapter.attributes.title || undefined;
       
       updateChapterProgress(
         mangaId,

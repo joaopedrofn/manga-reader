@@ -4,7 +4,7 @@ import React from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle, Button } from "@/ui";
 import { BookOpen, Clock, Play, List } from "lucide-react";
-import { getRecentlyReadMangas, type MangaProgress } from "@/lib/reading-progress";
+import { getRecentlyReadMangas, type MangaProgress, type ChapterProgress } from "@/lib/reading-progress";
 import Image from "next/image";
 
 export function ContinueReading() {
@@ -71,7 +71,7 @@ export function ContinueReading() {
                  {recentMangas.map((manga) => {
            const lastChapter = getLastChapterInfo(manga);
            const readChapters = Object.keys(manga.chapters).length;
-           const completedChapters = Object.values(manga.chapters).filter((ch: any) => ch.completed).length;
+           const completedChapters = Object.values(manga.chapters).filter((ch: ChapterProgress) => ch.completed).length;
            const inProgressChapters = readChapters - completedChapters;
            const totalChapters = manga.totalChaptersAvailable;
            const hasFullProgress = totalChapters !== undefined;

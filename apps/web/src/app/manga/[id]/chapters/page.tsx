@@ -26,7 +26,7 @@ import {
   Clock,
   BookOpen
 } from "lucide-react";
-import { getChapterProgress, getMangaProgress, updateMangaTotalChapters } from "@/lib/reading-progress";
+import { getChapterProgress, updateMangaTotalChapters } from "@/lib/reading-progress";
 import Image from "next/image";
 
 const PAGE_SIZE_OPTIONS = [25, 50, 75, 100];
@@ -140,17 +140,63 @@ export default function MangaChaptersPage() {
   const title = manga?.attributes.title.en || Object.values(manga?.attributes.title || {})[0] || "Unknown Title";
   const description = manga?.attributes.description?.en || Object.values(manga?.attributes.description || {})[0] || "";
   
-  // Get reading progress for this manga
-  const mangaProgress = getMangaProgress(mangaId);
-
   // Update total chapter count when data is loaded
   React.useEffect(() => {
     if (chaptersData?.chapters && manga) {
       const totalChapters = chaptersData.pagination?.total || chaptersData.chapters.length;
       const mangaTitle = manga.attributes.title.en || Object.values(manga.attributes.title || {})[0] || "Unknown Title";
-      updateMangaTotalChapters(mangaId, mangaTitle, totalChapters, mangaData?.coverUrl);
+      updateMangaTotalChapters(mangaId, mangaTitle, totalChapters, mangaData?.coverUrl || undefined);
     }
   }, [chaptersData, manga, mangaId, mangaData]);
+  
+  if (mangaLoading || chaptersLoading) {
+    return (
+      <div className="container mx-auto max-w-7xl px-4 py-8">
+        <div className="space-y-6">
+          {/* Loading states */}
+          <div className="flex items-center gap-6">
+            <Skeleton className="h-40 w-28" />
+            <div className="space-y-2">
+              <Skeleton className="h-6 w-60" />
+              <Skeleton className="h-4 w-40" />
+              <Skeleton className="h-20 w-96" />
+            </div>
+          </div>
+          <div className="space-y-4">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <Skeleton key={i} className="h-20 w-full" />
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (mangaError || chaptersError) {
+    return (
+      <div className="container mx-auto max-w-7xl px-4 py-8">
+        <div className="text-center space-y-4">
+          <h1 className="text-2xl font-bold">Error</h1>
+          <p className="text-muted-foreground">
+            Something went wrong loading the manga data
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!manga || !chaptersData) {
+    return (
+      <div className="container mx-auto max-w-7xl px-4 py-8">
+        <div className="text-center space-y-4">
+          <h1 className="text-2xl font-bold">Not Found</h1>
+          <p className="text-muted-foreground">
+            The manga or chapters could not be found.
+          </p>
+        </div>
+      </div>
+    );
+  }
   
   return (
     <div className="container mx-auto max-w-7xl px-4 py-8">
