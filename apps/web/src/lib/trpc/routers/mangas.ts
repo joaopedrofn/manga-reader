@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { publicProcedure, router } from "../lib/trpc";
+import { publicProcedure, router } from "../index";
 
 // MangaDex API types
 const MangaSchema = z.object({
