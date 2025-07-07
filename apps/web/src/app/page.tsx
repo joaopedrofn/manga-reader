@@ -1,5 +1,6 @@
 "use client"
 import { MangaList } from "@/components/manga-list";
+import { ContinueReading } from "@/components/continue-reading";
 
 export default function Home() {
   return (
@@ -11,8 +12,13 @@ export default function Home() {
             Discover Amazing Manga
           </h1>
           <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-            Explore thousands of manga titles from MangaDex. Find your next favorite series and dive into incredible stories.
+            Explore thousands of manga titles from MangaDx. Find your next favorite series and dive into incredible stories.
           </p>
+        </div>
+        
+        {/* Continue Reading Section */}
+        <div className="mb-16">
+          <ContinueReading />
         </div>
         
         <MangaList />

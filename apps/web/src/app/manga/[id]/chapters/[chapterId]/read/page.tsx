@@ -7,6 +7,12 @@ import { trpc } from "@/utils/trpc";
 import { Button, Card, CardContent, CardHeader, CardTitle } from "@/ui";
 import { ChevronLeft, ChevronRight, X, Info, ArrowLeft } from "lucide-react";
 import Image from "next/image";
+import { 
+  updateChapterProgress, 
+  getChapterProgress, 
+  markChapterCompleted,
+  getMangaProgress 
+} from "@/lib/reading-progress";
 
 export default function ChapterReadPage() {
   const params = useParams();
@@ -17,6 +23,7 @@ export default function ChapterReadPage() {
   const [currentPage, setCurrentPage] = useState(0);
   const [showDetails, setShowDetails] = useState(false);
   const [imageLoading, setImageLoading] = useState(true);
+  const [progressLoaded, setProgressLoaded] = useState(false);
 
   // Fetch chapter pages
   const { data: chapterData, isLoading, error } = useQuery(
@@ -36,6 +43,46 @@ export default function ChapterReadPage() {
 
   const totalPages = chapterData?.totalPages || 0;
   const currentPageUrl = chapterData?.pages[currentPage];
+
+  // Load saved progress when chapter data is available
+  useEffect(() => {
+    if (chapterData && !progressLoaded) {
+      const savedProgress = getChapterProgress(mangaId, chapterId);
+      if (savedProgress && savedProgress.currentPage > 0) {
+        setCurrentPage(savedProgress.currentPage);
+        setImageLoading(true);
+      }
+      setProgressLoaded(true);
+    }
+  }, [chapterData, chapterId, mangaId, progressLoaded]);
+
+  // Save progress whenever page changes
+  useEffect(() => {
+    if (chapterData && mangaData?.manga && progressLoaded) {
+      const mangaTitle = mangaData.manga.attributes.title.en || Object.values(mangaData.manga.attributes.title)[0] || "Unknown Title";
+      const chapterNumber = chapterData.chapter.attributes.chapter;
+      const chapterTitle = chapterData.chapter.attributes.title;
+      
+      updateChapterProgress(
+        mangaId,
+        mangaTitle,
+        {
+          chapterId,
+          currentPage,
+          totalPages,
+          chapterNumber,
+          chapterTitle,
+        },
+        mangaData.coverUrl || undefined,
+        undefined // Don't update total chapters from reader page
+      );
+
+      // Mark as completed if on last page
+      if (currentPage >= totalPages - 1) {
+        markChapterCompleted(mangaId, chapterId);
+      }
+    }
+  }, [currentPage, chapterData, mangaData, mangaId, chapterId, totalPages, progressLoaded]);
 
   // Navigation functions
   const goToNextPage = useCallback(() => {
@@ -359,6 +406,9 @@ export default function ChapterReadPage() {
       {!showDetails && (
         <div className="absolute top-4 right-4 z-40 bg-black/50 backdrop-blur-sm text-white px-3 py-1 rounded-full text-sm">
           {currentPage + 1} / {totalPages}
+          {currentPage >= totalPages - 1 && (
+            <span className="ml-2 text-green-400">✓</span>
+          )}
         </div>
       )}
 

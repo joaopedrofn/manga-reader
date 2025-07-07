@@ -26,8 +26,12 @@ import {
   Calendar,
   FileText,
   Hash,
-  Eye
+  Eye,
+  CheckCircle,
+  Clock,
+  BookOpen
 } from "lucide-react";
+import { getChapterProgress, getMangaProgress, updateMangaTotalChapters } from "@/lib/reading-progress";
 import Image from "next/image";
 
 const PAGE_SIZE_OPTIONS = [25, 50, 75, 100];
@@ -140,6 +144,18 @@ export default function MangaChaptersPage() {
   const manga = mangaData?.manga;
   const title = manga?.attributes.title.en || Object.values(manga?.attributes.title || {})[0] || "Unknown Title";
   const description = manga?.attributes.description?.en || Object.values(manga?.attributes.description || {})[0] || "";
+  
+  // Get reading progress for this manga
+  const mangaProgress = getMangaProgress(mangaId);
+
+  // Update total chapter count when data is loaded
+  React.useEffect(() => {
+    if (chaptersData?.chapters && manga) {
+      const totalChapters = chaptersData.pagination?.total || chaptersData.chapters.length;
+      const mangaTitle = manga.attributes.title.en || Object.values(manga.attributes.title || {})[0] || "Unknown Title";
+      updateMangaTotalChapters(mangaId, mangaTitle, totalChapters, mangaData?.coverUrl);
+    }
+  }, [chaptersData, manga, mangaId, mangaData]);
   
   return (
     <div className="container mx-auto max-w-7xl px-4 py-8">
@@ -286,51 +302,95 @@ export default function MangaChaptersPage() {
             </div>
           </div>
         ) : (
-          chaptersData?.chapters.map((chapter) => (
-            <Card key={chapter.id} className="hover:shadow-md transition-shadow">
-              <CardHeader className="pb-2">
-                <div className="flex items-start justify-between">
-                  <div className="space-y-1">
-                    <CardTitle className="text-lg">
-                      {chapter.attributes.volume && `Vol. ${chapter.attributes.volume} `}
-                      {chapter.attributes.chapter && `Ch. ${chapter.attributes.chapter}`}
-                      {chapter.attributes.title && ` - ${chapter.attributes.title}`}
-                    </CardTitle>
-                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                      <span className="flex items-center gap-1">
-                        <Eye className="h-4 w-4" />
-                        {chapter.attributes.pages} pages
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <Calendar className="h-4 w-4" />
-                        {formatDate(chapter.attributes.publishAt)}
-                      </span>
-                      <span className="uppercase font-medium">
-                        {chapter.attributes.translatedLanguage}
-                      </span>
-                    </div>
-                    
-                    {/* Scanlation group credits */}
-                    {chapter.relationships && chapter.relationships.some(rel => rel.type === "scanlation_group") && (
-                      <div className="text-xs text-muted-foreground/70 mt-1">
-                        by {chapter.relationships
-                          .filter(rel => rel.type === "scanlation_group")
-                          .map(group => group.attributes?.name || "Unknown Group")
-                          .join(", ")}
+          chaptersData?.chapters.map((chapter) => {
+            const chapterProgress = getChapterProgress(mangaId, chapter.id);
+            const isCompleted = chapterProgress?.completed || false;
+            const isPartiallyRead = chapterProgress && chapterProgress.currentPage > 0 && !isCompleted;
+            const progressPercentage = chapterProgress ? 
+              Math.round(((chapterProgress.currentPage + 1) / chapterProgress.totalPages) * 100) : 0;
+
+            return (
+              <Card key={chapter.id} className={`hover:shadow-md transition-shadow ${
+                isCompleted ? 'bg-green-50/50 border-green-200/50' : 
+                isPartiallyRead ? 'bg-blue-50/50 border-blue-200/50' : ''
+              }`}>
+                <CardHeader className="pb-2">
+                  <div className="flex items-start justify-between">
+                    <div className="space-y-1 flex-1">
+                      <div className="flex items-center gap-2">
+                        <CardTitle className="text-lg">
+                          {chapter.attributes.volume && `Vol. ${chapter.attributes.volume} `}
+                          {chapter.attributes.chapter && `Ch. ${chapter.attributes.chapter}`}
+                          {chapter.attributes.title && ` - ${chapter.attributes.title}`}
+                        </CardTitle>
+                        {isCompleted && (
+                          <CheckCircle className="h-4 w-4 text-green-600" />
+                        )}
+                        {isPartiallyRead && (
+                          <Clock className="h-4 w-4 text-blue-600" />
+                        )}
                       </div>
-                    )}
+                      
+                      <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                        <span className="flex items-center gap-1">
+                          <Eye className="h-4 w-4" />
+                          {chapter.attributes.pages} pages
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Calendar className="h-4 w-4" />
+                          {formatDate(chapter.attributes.publishAt)}
+                        </span>
+                        <span className="uppercase font-medium">
+                          {chapter.attributes.translatedLanguage}
+                        </span>
+                        {chapterProgress && (
+                          <span className="flex items-center gap-1 text-xs">
+                            <BookOpen className="h-3 w-3" />
+                            {isCompleted ? 'Completed' : `${progressPercentage}%`}
+                          </span>
+                        )}
+                      </div>
+                      
+                      {/* Progress bar for partially read chapters */}
+                      {isPartiallyRead && (
+                        <div className="mt-2">
+                          <div className="w-full bg-gray-200 rounded-full h-1.5">
+                            <div 
+                              className="bg-blue-500 h-1.5 rounded-full transition-all duration-300" 
+                              style={{ width: `${progressPercentage}%` }}
+                            />
+                          </div>
+                          <div className="text-xs text-muted-foreground mt-1">
+                            Page {chapterProgress.currentPage + 1} of {chapterProgress.totalPages}
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* Scanlation group credits */}
+                      {chapter.relationships && chapter.relationships.some(rel => rel.type === "scanlation_group") && (
+                        <div className="text-xs text-muted-foreground/70 mt-1">
+                          by {chapter.relationships
+                            .filter(rel => rel.type === "scanlation_group")
+                            .map(group => group.attributes?.name || "Unknown Group")
+                            .join(", ")}
+                        </div>
+                      )}
+                    </div>
+                    <div className="ml-4">
+                      <Button 
+                        variant={isCompleted ? "secondary" : isPartiallyRead ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => router.push(`/manga/${mangaId}/chapters/${chapter.id}/read`)}
+                        className={isPartiallyRead ? "bg-blue-600 hover:bg-blue-700" : ""}
+                      >
+                        {isCompleted ? 'Read Again' : isPartiallyRead ? 'Continue' : 'Read'}
+                      </Button>
+                    </div>
                   </div>
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => router.push(`/manga/${mangaId}/chapters/${chapter.id}/read`)}
-                  >
-                    Read
-                  </Button>
-                </div>
-              </CardHeader>
-            </Card>
-          ))
+                </CardHeader>
+              </Card>
+            );
+          })
         )}
       </div>
       
