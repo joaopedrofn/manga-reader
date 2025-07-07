@@ -224,6 +224,22 @@ export function MangaList() {
           </div>
         </div>
       )}
+      
+      {/* Footer Credits */}
+      <div className="mt-16 text-center text-xs text-muted-foreground/60 pb-8">
+        <p>
+          Manga data provided by{" "}
+          <a 
+            href="https://mangadex.org" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="text-primary hover:underline"
+          >
+            MangaDex
+          </a>
+          {" • "}Supporting the manga community
+        </p>
+      </div>
     </div>
   );
 } 

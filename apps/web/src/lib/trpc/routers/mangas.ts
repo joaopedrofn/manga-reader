@@ -105,6 +105,16 @@ const ChapterListResponseSchema = z.object({
   total: z.number(),
 });
 
+const AtHomeResponseSchema = z.object({
+  result: z.literal("ok"),
+  baseUrl: z.string(),
+  chapter: z.object({
+    hash: z.string(),
+    data: z.array(z.string()),
+    dataSaver: z.array(z.string()),
+  }),
+});
+
 export const mangasRouter = router({
   list: publicProcedure
     .input(z.object({
@@ -173,7 +183,7 @@ export const mangasRouter = router({
         const response = await fetch(url);
         
         if (!response.ok) {
-          throw new Error(`MangaDx API error: ${response.status} ${response.statusText}`);
+          throw new Error(`MangaDex API error: ${response.status} ${response.statusText}`);
         }
         
         const data = await response.json();
@@ -216,7 +226,7 @@ export const mangasRouter = router({
         const response = await fetch(url);
         
         if (!response.ok) {
-          throw new Error(`MangaDx API error: ${response.status} ${response.statusText}`);
+          throw new Error(`MangaDex API error: ${response.status} ${response.statusText}`);
         }
         
         const data = await response.json();
@@ -230,7 +240,7 @@ export const mangasRouter = router({
           const coverRelation = validatedData.data.relationships.find(rel => rel.type === "cover_art");
           if (coverRelation && coverRelation.attributes) {
             const coverData = CoverSchema.parse(coverRelation);
-            // Construct cover URL as per MangaDx API docs
+            // Construct cover URL as per MangaDex API docs
             coverUrl = `${process.env.MANGADEX_UPLOADS_URL}/covers/${validatedData.data.id}/${coverData.attributes.fileName}.256.jpg`;
           }
         }
@@ -293,7 +303,7 @@ export const mangasRouter = router({
         const response = await fetch(url);
         
         if (!response.ok) {
-          throw new Error(`MangaDx API error: ${response.status} ${response.statusText}`);
+          throw new Error(`MangaDex API error: ${response.status} ${response.statusText}`);
         }
         
         const data = await response.json();
@@ -312,6 +322,51 @@ export const mangasRouter = router({
       } catch (error) {
         console.error("Error fetching chapters:", error);
         throw new Error("Failed to fetch chapters");
+      }
+    }),
+
+  getChapterPages: publicProcedure
+    .input(z.object({
+      chapterId: z.string(),
+      dataSaver: z.boolean().optional().default(false),
+    }))
+    .query(async ({ input }) => {
+      try {
+        // First, get chapter details if needed (for metadata)
+        const chapterResponse = await fetch(`${process.env.MANGADEX_API_URL}/chapter/${input.chapterId}`);
+        if (!chapterResponse.ok) {
+          throw new Error(`Failed to fetch chapter details: ${chapterResponse.status}`);
+        }
+        const chapterData = await chapterResponse.json();
+        const chapter = ChapterSchema.parse(chapterData.data);
+
+        // Get the at-home server info for this chapter
+        const atHomeUrl = `${process.env.MANGADEX_API_URL}/at-home/server/${input.chapterId}`;
+        const atHomeResponse = await fetch(atHomeUrl);
+        
+        if (!atHomeResponse.ok) {
+          throw new Error(`MangaDex at-home API error: ${atHomeResponse.status} ${atHomeResponse.statusText}`);
+        }
+        
+        const atHomeData = await atHomeResponse.json();
+        const validatedAtHome = AtHomeResponseSchema.parse(atHomeData);
+        
+        // Construct page URLs
+        const quality = input.dataSaver ? "data-saver" : "data";
+        const pages = input.dataSaver ? validatedAtHome.chapter.dataSaver : validatedAtHome.chapter.data;
+        
+        const pageUrls = pages.map(filename => 
+          `${validatedAtHome.baseUrl}/${quality}/${validatedAtHome.chapter.hash}/${filename}`
+        );
+        
+        return {
+          chapter,
+          pages: pageUrls,
+          totalPages: pages.length,
+        };
+      } catch (error) {
+        console.error("Error fetching chapter pages:", error);
+        throw new Error("Failed to fetch chapter pages");
       }
     }),
 }); 

@@ -3,14 +3,18 @@ import Link from "next/link";
 import { BookOpen } from "lucide-react";
 
 import { ModeToggle } from "./mode-toggle";
+import { usePathname } from "next/navigation";
+import { cn } from "@/ui";
 
 export default function Header() {
+  const pathname = usePathname();
+  const isReading = pathname.includes("/read");
   const links = [
     { to: "/", label: "Home" },
   ];
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <header className={cn("sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60", {"hidden": isReading})}>
       <div className="container mx-auto max-w-7xl px-4">
         <div className="flex h-14 items-center justify-between">
           <div className="flex items-center gap-6">

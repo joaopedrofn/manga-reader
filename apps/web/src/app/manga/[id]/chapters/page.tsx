@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { trpc } from "@/utils/trpc";
 import { 
   Button, 
@@ -42,6 +42,7 @@ interface SortConfig {
 
 export default function MangaChaptersPage() {
   const params = useParams();
+  const router = useRouter();
   const mangaId = params.id as string;
   
   const [currentPage, setCurrentPage] = useState(1);
@@ -308,8 +309,22 @@ export default function MangaChaptersPage() {
                         {chapter.attributes.translatedLanguage}
                       </span>
                     </div>
+                    
+                    {/* Scanlation group credits */}
+                    {chapter.relationships && chapter.relationships.some(rel => rel.type === "scanlation_group") && (
+                      <div className="text-xs text-muted-foreground/70 mt-1">
+                        by {chapter.relationships
+                          .filter(rel => rel.type === "scanlation_group")
+                          .map(group => group.attributes?.name || "Unknown Group")
+                          .join(", ")}
+                      </div>
+                    )}
                   </div>
-                  <Button variant="outline" size="sm">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => router.push(`/manga/${mangaId}/chapters/${chapter.id}/read`)}
+                  >
                     Read
                   </Button>
                 </div>
@@ -376,6 +391,22 @@ export default function MangaChaptersPage() {
           </div>
         </div>
       )}
+      
+      {/* Footer Credits */}
+      <div className="mt-12 text-center text-xs text-muted-foreground/60 pb-8">
+        <p>
+          Data provided by{" "}
+          <a 
+            href="https://mangadex.org" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="text-primary hover:underline"
+          >
+            MangaDex
+          </a>
+          {" • "}Thanks to all scanlation groups for their hard work
+        </p>
+      </div>
     </div>
   );
 } 
