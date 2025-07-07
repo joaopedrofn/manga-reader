@@ -244,7 +244,7 @@ export default function ChapterReadPage() {
                       rel="noopener noreferrer"
                       className="text-orange-400 hover:text-orange-300 underline"
                     >
-                      MangaDX
+                      MangaDeX
                     </a>
                   </p>
                 </div>
