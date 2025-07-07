@@ -4,14 +4,13 @@ import React, { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { trpc } from "@/utils/trpc";
-import { Button, Card, CardContent, CardHeader, CardTitle } from "@/ui";
+import { Button } from "@/ui";
 import { ChevronLeft, ChevronRight, X, Info, ArrowLeft } from "lucide-react";
 import Image from "next/image";
 import { 
   updateChapterProgress, 
   getChapterProgress, 
   markChapterCompleted,
-  getMangaProgress 
 } from "@/lib/reading-progress";
 
 export default function ChapterReadPage() {

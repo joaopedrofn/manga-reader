@@ -50,7 +50,7 @@ export function MangaList() {
     const halfShow = Math.floor(showPages / 2);
     
     let startPage = Math.max(currentPage - halfShow, 1);
-    let endPage = Math.min(startPage + showPages - 1, totalPages);
+    const endPage = Math.min(startPage + showPages - 1, totalPages);
     
     if (endPage - startPage + 1 < showPages) {
       startPage = Math.max(endPage - showPages + 1, 1);

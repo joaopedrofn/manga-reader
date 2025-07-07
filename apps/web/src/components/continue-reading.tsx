@@ -3,7 +3,7 @@
 import React from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle, Button } from "@/ui";
-import { BookOpen, Clock, ArrowRight, Play, List } from "lucide-react";
+import { BookOpen, Clock, Play, List } from "lucide-react";
 import { getRecentlyReadMangas, type MangaProgress } from "@/lib/reading-progress";
 import Image from "next/image";
 
