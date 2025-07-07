@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { trpc } from "@/utils/trpc";
@@ -12,6 +12,7 @@ import {
   getChapterProgress, 
   markChapterCompleted,
 } from "@/lib/reading-progress";
+import { useImagePreloader } from "@/hooks/use-image-preloader";
 
 export default function ChapterReadPage() {
   const params = useParams();
@@ -23,6 +24,19 @@ export default function ChapterReadPage() {
   const [showDetails, setShowDetails] = useState(false);
   const [imageLoading, setImageLoading] = useState(true);
   const [progressLoaded, setProgressLoaded] = useState(false);
+
+  // Image preloader hook
+  const {
+    preloadAroundPage,
+    cleanupCache,
+    getPreloadStats,
+    isImageLoaded,
+    isImageLoading,
+  } = useImagePreloader({
+    maxConcurrent: 2,
+    preloadDistance: 3,
+    cacheCleanupDistance: 8,
+  });
 
   // Fetch chapter pages
   const { data: chapterData, isLoading, error } = useQuery(
@@ -42,6 +56,7 @@ export default function ChapterReadPage() {
 
   const totalPages = chapterData?.totalPages || 0;
   const currentPageUrl = chapterData?.pages[currentPage];
+  const allPages = useMemo(() => chapterData?.pages || [], [chapterData?.pages]);
 
   // Load saved progress when chapter data is available
   useEffect(() => {
@@ -83,20 +98,56 @@ export default function ChapterReadPage() {
     }
   }, [currentPage, chapterData, mangaData, mangaId, chapterId, totalPages, progressLoaded]);
 
+  // Start preloading when chapter data is available
+  useEffect(() => {
+    if (allPages.length > 0 && currentPage >= 0) {
+      // Start preloading around current page
+      preloadAroundPage(currentPage, allPages, 'forward');
+      
+      // Cleanup old cached pages
+      cleanupCache(currentPage, allPages);
+    }
+  }, [currentPage, allPages, preloadAroundPage, cleanupCache]);
+
+  // Enhanced image loading with preloader support
+  const handleImageLoad = useCallback(() => {
+    setImageLoading(false);
+  }, []);
+
+  const handleImageError = useCallback(() => {
+    setImageLoading(false);
+  }, []);
+
   // Navigation functions
   const goToNextPage = useCallback(() => {
     if (currentPage < totalPages - 1) {
-      setCurrentPage(prev => prev + 1);
-      setImageLoading(true);
+      const nextPage = currentPage + 1;
+      setCurrentPage(nextPage);
+      
+      // Check if next page is already preloaded
+      const nextPageUrl = allPages[nextPage];
+      if (nextPageUrl && isImageLoaded(nextPageUrl)) {
+        setImageLoading(false);
+      } else {
+        setImageLoading(true);
+      }
     }
-  }, [currentPage, totalPages]);
+  }, [currentPage, totalPages, allPages, isImageLoaded]);
 
   const goToPreviousPage = useCallback(() => {
     if (currentPage > 0) {
-      setCurrentPage(prev => prev - 1);
-      setImageLoading(true);
+      const prevPage = currentPage - 1;
+      setCurrentPage(prevPage);
+      
+      // Check if previous page is already preloaded
+      const prevPageUrl = allPages[prevPage];
+      if (prevPageUrl && isImageLoaded(prevPageUrl)) {
+        setImageLoading(false);
+      } else {
+        setImageLoading(true);
+      }
     }
-  }, [currentPage]);
+  }, [currentPage, allPages, isImageLoaded]);
 
   const toggleDetails = useCallback(() => {
     setShowDetails(prev => !prev);
@@ -136,19 +187,32 @@ export default function ChapterReadPage() {
          case "Home":
            e.preventDefault();
            setCurrentPage(0);
-           setImageLoading(true);
+           // Check if first page is preloaded
+           const firstPageUrl = allPages[0];
+           if (firstPageUrl && isImageLoaded(firstPageUrl)) {
+             setImageLoading(false);
+           } else {
+             setImageLoading(true);
+           }
            break;
          case "End":
            e.preventDefault();
-           setCurrentPage(totalPages - 1);
-           setImageLoading(true);
+           const lastPageIndex = totalPages - 1;
+           setCurrentPage(lastPageIndex);
+           // Check if last page is preloaded
+           const lastPageUrl = allPages[lastPageIndex];
+           if (lastPageUrl && isImageLoaded(lastPageUrl)) {
+             setImageLoading(false);
+           } else {
+             setImageLoading(true);
+           }
            break;
        }
      };
 
     window.addEventListener("keydown", handleKeyPress);
     return () => window.removeEventListener("keydown", handleKeyPress);
-  }, [goToNextPage, goToPreviousPage, toggleDetails, showDetails, router]);
+  }, [goToNextPage, goToPreviousPage, toggleDetails, showDetails, router, totalPages, allPages, isImageLoaded]);
 
   // Handle click zones
   const handleImageClick = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -261,8 +325,9 @@ export default function ChapterReadPage() {
               fill
               className="object-contain"
               priority
-              onLoad={() => setImageLoading(false)}
-              onError={() => setImageLoading(false)}
+              sizes="100vw"
+              onLoad={handleImageLoad}
+              onError={handleImageError}
             />
             
             {/* Loading overlay */}
@@ -337,9 +402,22 @@ export default function ChapterReadPage() {
             </Button>
             
             <div className="text-center">
-              <span className="text-sm">
-                Page {currentPage + 1} of {totalPages}
-              </span>
+              <div className="text-sm flex items-center justify-center gap-2">
+                <span>Page {currentPage + 1} of {totalPages}</span>
+                
+                {/* Preload status in details */}
+                {(() => {
+                  const stats = getPreloadStats();
+                  if (stats.total > 0) {
+                    return (
+                      <span className="text-xs bg-white/20 px-2 py-1 rounded">
+                        {stats.loaded} cached • {stats.loading} loading
+                      </span>
+                    );
+                  }
+                  return null;
+                })()}
+              </div>
             </div>
             
             <Button
@@ -403,11 +481,30 @@ export default function ChapterReadPage() {
 
       {/* Minimal page indicator (always visible) */}
       {!showDetails && (
-        <div className="absolute top-4 right-4 z-40 bg-black/50 backdrop-blur-sm text-white px-3 py-1 rounded-full text-sm">
-          {currentPage + 1} / {totalPages}
-          {currentPage >= totalPages - 1 && (
-            <span className="ml-2 text-green-400">✓</span>
-          )}
+        <div className="absolute top-4 right-4 z-40 bg-black/50 backdrop-blur-sm text-white px-3 py-1 rounded-full text-sm flex items-center gap-2">
+          <span>
+            {currentPage + 1} / {totalPages}
+            {currentPage >= totalPages - 1 && (
+              <span className="ml-2 text-green-400">✓</span>
+            )}
+          </span>
+          
+          {/* Preload indicator */}
+          {(() => {
+            const stats = getPreloadStats();
+            const nextPageUrl = allPages[currentPage + 1];
+            const isNextPreloaded = nextPageUrl && isImageLoaded(nextPageUrl);
+            const isNextLoading = nextPageUrl && isImageLoading(nextPageUrl);
+            
+            if (isNextPreloaded && currentPage < totalPages - 1) {
+              return <div className="w-2 h-2 bg-green-400 rounded-full" title="Next page ready" />;
+            } else if (isNextLoading && currentPage < totalPages - 1) {
+              return <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse" title="Next page loading" />;
+            } else if (stats.loading > 0) {
+              return <div className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse" title="Pages loading" />;
+            }
+            return null;
+          })()}
         </div>
       )}
 
